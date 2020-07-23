@@ -1,6 +1,5 @@
-# Home lab
+# Docker setup: NGINX-PROXY + GITEA + DRONE
 
-My setup is Gitea and Drone behind Nginx-proxy.
 Traefik is very accomodating but jwilder/nginx-proxy proves more flexible and faster.
 
 ## To-do
