@@ -1,0 +1,89 @@
+version: '3'
+
+services:
+
+    panel:
+        image: quay.io/parkervcp/pterodactyl:release_v1.1.1
+        restart: always
+        expose:
+            - 80
+        environment:
+            ## These are defaults and should be left alone
+            - "APP_ENV=production"
+            - "APP_DEBUG=false"
+            - "APP_THEME=pterodactyl"
+            - "APP_CLEAR_TASKLOG=720"
+            - "APP_DELETE_MINUTES=10"
+            - "APP_ENVIRONMENT_ONLY=false"
+            - "QUEUE_HIGH=high"
+            - "QUEUE_STANDARD=standard"
+            - "QUEUE_LOW=low"
+            ## Cache settings
+            - "CACHE_DRIVER=redis"
+            - "SESSION_DRIVER=redis"
+            - "QUEUE_DRIVER=redis"
+            - "REDIS_HOST=cache"
+            - "REDIS_PASSWORD=null"
+            - "REDIS_PORT=6379"
+            ## Domain settings
+            - "APP_URL=http://${PANEL_ROOT_URL}" ## if you are running this behind a reverse proxy with ssl app_url needs to be https still. 
+            ## Timezone settings
+            - "APP_TIMEZONE=UTC" ## http://php.net/manual/en/timezones.php
+            ## Service egg settings
+            - "APP_SERVICE_AUTHOR=noreply@${PANEL_ROOT_URL}" ## this is the email that gets put on eggs you create
+            ## Database settings
+            ## These can be left alone. Only change if you know what you are doing.
+            - "DB_HOST=db" 
+            - "DB_PORT=3306"
+            - "DB_DATABASE=pterodb"
+            - "DB_USERNAME=ptero"
+            - "DB_PASSWORD=${PANEL_DB_PASSWD}"
+            ## Email settings
+            - "MAIL_FROM=noreply@${PANEL_ROOT_URL}"
+            - "MAIL_DRIVER=smtp"
+            - "MAIL_HOST=mail"
+            - "MAIL_PORT=1025"
+            - "MAIL_USERNAME=''"
+            - "MAIL_PASSWORD=''"
+            - "MAIL_ENCRYPTION=true"
+            ## certbot settings - Used to automatically generate ssl certs and 
+            # - "LE_EMAIL=" ## uncomment if you are using ssl
+            ## Proxy
+            - VIRTUAL_HOST=${PANEL_ROOT_URL}
+            - VIRTUAL_PORT=80
+            - LETSENCRYPT_HOST=${PANEL_ROOT_URL}
+            - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+        networks:
+            - proxy
+            - appnet
+        volume:
+            - "/srv/pterodactyl/var/:/app/var/"
+            - "/srv/pterodactyl/nginx/:/etc/nginx/conf.d/"
+            - "/srv/pterodactyl/certs/:/etc/letsencrypt/"
+            - "/srv/pterodactyl/logs/:/var/log/"
+
+    cache:
+        image: redis:alpine
+        restart: always
+        networks:
+            - appnet
+
+    panel-db:
+        image: mariadb:10.4
+        restart: always
+        environment:
+            - "MYSQL_ROOT_PASSWORD=${PANEL_DB_ROOT_PASSWD}"
+            - "MYSQL_DATABASE=pterodb"
+            - "MYSQL_USER=ptero"
+            - "MYSQL_PASSWORD=${PANEL_DB_PASSWD}"
+        networks:
+            - appnet
+        volumes:
+            - "/srv/pterodactyl/db:/var/lib/mysql"
+
+networks:
+    # may break if wings on same machine
+    appnet:
+    proxy:
+        external:
+            name: nginx-proxy
